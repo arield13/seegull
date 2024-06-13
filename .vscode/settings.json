@@ -1,0 +1,22 @@
+{
+    "[json]": {
+        "editor.codeActionsOnSave": [
+            "source.sort.json"
+        ]
+    },
+    "[python]": {
+        "editor.codeActionsOnSave": [
+            "source.fixAll",
+            "source.organizeImports"
+        ],
+        "editor.defaultFormatter": "charliermarsh.ruff"
+    },
+    "editor.formatOnSave": true,
+    "notebook.codeActionsOnSave": {
+        "notebook.source.fixAll": "explicit",
+        "notebook.source.organizeImports": "explicit"
+    },
+    "notebook.formatOnSave.enabled": true,
+    "ruff.configuration": "./pyproject.toml",
+    "ruff.nativeServer": true
+}
