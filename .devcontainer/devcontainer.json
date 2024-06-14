@@ -1,9 +1,14 @@
 {
+    "build": {
+        "context": ".",
+        "dockerfile": "./Dockerfile"
+    },
     "customizations": {
         "vscode": {
             "extensions": [
                 "charliermarsh.ruff"
             ]
         }
-    }
+    },
+    "postStartCommand": "pip install -e ."
 }
