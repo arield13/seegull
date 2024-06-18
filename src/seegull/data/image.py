@@ -501,12 +501,7 @@ def load_image(
 
 def load_images(
     df: pd.DataFrame,
-    # return_type: Literal["bower_ml", "PIL"] = "bower_ml",
-    # resize: tuple[int, int] | None = None,
     max_workers: int | None = None,
-    # low_memory: bool = True,
-    # crop: bool = False,
-    # force_redownload: bool = False,
     **kwargs,
 ) -> pd.DataFrame:
     """Load the images in the given DataFrame.
@@ -523,11 +518,6 @@ def load_images(
     images = process_map(
         partial(
             load_image,
-            # return_type=return_type,
-            # resize=resize,
-            # low_memory=low_memory,
-            # crop=crop,
-            # force_redownload=force_redownload,
             **kwargs,
         ),
         [row for _, row in df.iterrows()],
