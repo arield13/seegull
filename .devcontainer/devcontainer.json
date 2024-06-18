@@ -6,9 +6,10 @@
     "customizations": {
         "vscode": {
             "extensions": [
-                "charliermarsh.ruff"
+                "charliermarsh.ruff",
+                "ryanluker.vscode-coverage-gutters"
             ]
         }
     },
-    "postStartCommand": "pip install -e ."
+    "postStartCommand": "pip install -e .[dev]"
 }

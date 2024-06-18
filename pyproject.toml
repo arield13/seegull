@@ -45,7 +45,10 @@ package-dir = {"" = "src"}
 "*" = ["*.*"]
 
 
-
+[tool.coverage.run]
+branch = true
+# Fix for opencv
+omit = ["config.py", "config-3.py"]
 
 # Mypy
 # ----

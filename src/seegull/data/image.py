@@ -26,6 +26,9 @@ from typing_extensions import Self
 # Enable reading heic files
 register_heif_opener()
 
+# Load images with missing bytes
+PIL.ImageFile.LOAD_TRUNCATED_IMAGES = True
+
 # from bower_ml.models.autodistill import AutodistillModelWrapper
 # from bower_ml.models.yolo import YOLO, YOLOMultiLabel
 
@@ -488,7 +491,7 @@ def load_image(
         else:
             im = im.resize(*resize, **kwargs)
 
-    if return_type == "bower_ml":
+    if return_type == "seegull":
         return im
     elif return_type == "PIL":
         return im.to_pil()
@@ -516,9 +519,6 @@ def load_images(
         max_workers: The number of concurrent workers to use.
             See https://tqdm.github.io/docs/contrib.concurrent/#process_map
     """
-
-    # if crop:
-    #     assert len(set(["x1", "y1", "x2", "y2"]) & set(df.columns)) == 4
 
     images = process_map(
         partial(

@@ -1,0 +1,13 @@
+image_id,image_source,image_height,image_width,object,material,brand,x1,y1,x2,y2
+2105761973738690856,https://storage.googleapis.com/seegull-test-data/package-picture-489990-658db3df2a150f191d47df6b-front.jpg,900,900,Can/Tin/Cylinder,Metal,old jamaica,284.0,74.0,674.0,780.0
+357721097128884392,https://storage.googleapis.com/seegull-test-data/package-picture-302256-633956ba3023d30011896d18-e0feb67e-ff1e-40ed-99d9-fa95c5fa86d9-front.jpg,900,900,Box/Card/Tray/Crate,Fiber - Cardboard / Paper Packaging,björn borg,222.0,206.0,633.0,726.0
+328325079742791550,https://storage.googleapis.com/seegull-test-data/package-picture-584191-656a61192cd10876f1d0c10a-front.jpg,901,901,Flexibles/Bag/Wrapper/Foil/Net,Plastic - Soft,almo nature,196.0,49.0,710.0,788.0
+4875697904501717195,https://storage.googleapis.com/seegull-test-data/image-recycling-26061-651438125879274ed7cf6047-7d65f0894860efb7-573076577817.jpg,666,500,Battery,Hazardous Waste,unknown,263.0,255.0,376.0,305.0
+4875697904501717195,https://storage.googleapis.com/seegull-test-data/image-recycling-26061-651438125879274ed7cf6047-7d65f0894860efb7-573076577817.jpg,666,500,Battery,Hazardous Waste,unknown,71.0,248.0,176.0,357.0
+4875697904501717195,https://storage.googleapis.com/seegull-test-data/image-recycling-26061-651438125879274ed7cf6047-7d65f0894860efb7-573076577817.jpg,666,500,Battery,Hazardous Waste,unknown,166.0,270.0,265.0,347.0
+4875697904501717195,https://storage.googleapis.com/seegull-test-data/image-recycling-26061-651438125879274ed7cf6047-7d65f0894860efb7-573076577817.jpg,666,500,Battery,Hazardous Waste,energizer,286.0,306.0,389.0,384.0
+4875697904501717195,https://storage.googleapis.com/seegull-test-data/image-recycling-26061-651438125879274ed7cf6047-7d65f0894860efb7-573076577817.jpg,666,500,Battery,Hazardous Waste,unknown,113.0,299.0,185.0,427.0
+4875697904501717195,https://storage.googleapis.com/seegull-test-data/image-recycling-26061-651438125879274ed7cf6047-7d65f0894860efb7-573076577817.jpg,666,500,Battery,Hazardous Waste,unknown,206.0,328.0,298.0,417.0
+468836346316123269,https://storage.googleapis.com/seegull-test-data/package-picture-186379-6310b0ff5939950012d1edb9-16082710-front.jpg,901,901,Bottle,Plastic - Hard,smarteyes,340.0,35.0,577.0,856.0
+468836346316123269,https://storage.googleapis.com/seegull-test-data/package-picture-186379-6310b0ff5939950012d1edb9-16082710-front.jpg,901,901,Lid/Cap,Composite,smarteyes,396.0,35.0,535.0,258.0
+
