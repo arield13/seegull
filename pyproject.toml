@@ -18,7 +18,10 @@ classifiers = [
 ]
 license = {text = "MIT license"}
 dependencies = [
-  
+  "autodistill>=0.1.26",
+  "autodistill-grounding-dino>=0.1.3",
+  "google-cloud-storage",
+  "pillow_heif>=0.15.0",
 ]
 
 [project.optional-dependencies]
@@ -42,7 +45,10 @@ package-dir = {"" = "src"}
 "*" = ["*.*"]
 
 
-
+[tool.coverage.run]
+branch = true
+# Fix for opencv
+omit = ["config.py", "config-3.py"]
 
 # Mypy
 # ----
