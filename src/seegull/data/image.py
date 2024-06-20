@@ -20,17 +20,19 @@ import requests
 import supervision as sv
 from google.cloud import storage
 from pillow_heif import register_heif_opener
+from supervision.annotators.base import BaseAnnotator
 from tqdm.contrib.concurrent import process_map
 from typing_extensions import Self
+
+from seegull.models.yolo import YOLO, YOLOMultiLabel
+
+# from bower_ml.models.autodistill import AutodistillModelWrapper
 
 # Enable reading heic files
 register_heif_opener()
 
 # Load images with missing bytes
 PIL.ImageFile.LOAD_TRUNCATED_IMAGES = True
-
-# from bower_ml.models.autodistill import AutodistillModelWrapper
-# from bower_ml.models.yolo import YOLO, YOLOMultiLabel
 
 
 class Image:
@@ -167,111 +169,151 @@ class Image:
         else:
             raise ValueError(f"Unsupported Protocol: {self.url}")
 
-    # def predict(
-    #     self,
-    #     model: YOLO | DetectionBaseModel | AutodistillModelWrapper,
-    #     conf=0.5,
-    #     nms_threshold=0.5,
-    # ) -> Self:
-    #     if isinstance(model, YOLOMultiLabel):
-    #         classes = model.idx_to_name
-    #         self.yolo_result = model(self.path, conf=conf, verbose=False)[0]
-    #         class_id = [
-    #             tuple(c)
-    #             for c in self.yolo_result.boxes.cls.cpu().numpy().astype(int)
-    #         ]
-    #         self.sv_detection = sv.Detections(
-    #             xyxy=self.yolo_result.boxes.xyxy.cpu().numpy(),
-    #             confidence=self.yolo_result.boxes.conf.cpu()
-    #             .numpy()
-    #             .prod(axis=1),
-    #             class_id=np.array([model.tuple_to_idx[t] for t in class_id]),
-    #         )
-    #     elif isinstance(model, YOLO):
-    #         classes = model.classes
-    #         self.yolo_result = model(self.path, conf=conf, verbose=False)[0]
-    #         self.sv_detection = sv.Detections.from_ultralytics(self.yolo_result)
-    #     elif isinstance(model, DetectionBaseModel):
-    #         classes = model.ontology.classes()
-    #         self.sv_detection = model.predict(self.image)
-    #     elif isinstance(model, AutodistillModelWrapper):
-    #         classes = model.classes
-    #         self.sv_detection = model.predict(self, conf=conf)
-    #     else:
-    #         raise NotImplementedError(f"Model {model} is not supported.")
+    def predict(
+        self,
+        model: YOLO,  # | DetectionBaseModel | AutodistillModelWrapper,
+        conf=0.5,
+        nms_threshold=0.5,
+    ) -> Self:
+        """Run object detection on this image with the given model.
 
-    #     self.sv_detection = self.sv_detection.with_nms(
-    #         threshold=nms_threshold, class_agnostic=True
-    #     )
+        Saves the prediction as an `supervision.Detections` object on this
+        Image instance.
 
-    #     self.labels = [
-    #         f"{classes[class_id]} {confidence:0.2f}"
-    #         for _, _, confidence, class_id, _, _ in self.sv_detection
-    #     ]
+        TODO: Implment DINO
 
-    #     return self
+        Args:
+            model: The object detection model to use
+            conf: The confidence threshold for a prediction
+            nms_threshold: The threshold for combining bounding boxes
+                using non-maximum suppression
+        """
+        if isinstance(model, YOLOMultiLabel):
+            classes = model.idx_to_name
+            self.yolo_result = model(self.to_pil(), conf=conf, verbose=False)[0]
+            class_id = [
+                tuple(c)
+                for c in self.yolo_result.boxes.cls.cpu().numpy().astype(int)
+            ]
+            self.sv_detection = sv.Detections(
+                xyxy=self.yolo_result.boxes.xyxy.cpu().numpy(),
+                confidence=self.yolo_result.boxes.conf.cpu()
+                .numpy()
+                .prod(axis=1),
+                class_id=np.array([model.tuple_to_idx[t] for t in class_id]),
+            )
+        elif isinstance(model, YOLO):
+            classes = model.classes
+            self.yolo_result = model(self.to_pil(), conf=conf, verbose=False)[0]
+            self.sv_detection = sv.Detections.from_ultralytics(self.yolo_result)
+        # elif isinstance(model, DetectionBaseModel):
+        #     classes = model.ontology.classes()
+        #     self.sv_detection = model.predict(self.image)
+        # elif isinstance(model, AutodistillModelWrapper):
+        #     classes = model.classes
+        #     self.sv_detection = model.predict(self, conf=conf)
+        else:
+            raise NotImplementedError(f"Model {model} is not supported.")
 
-    # def annotate(self) -> Self:
-    #     box_annotator = sv.BoxAnnotator()
+        self.sv_detection = self.sv_detection.with_nms(
+            threshold=nms_threshold, class_agnostic=True
+        )
 
-    #     annotated_image = box_annotator.annotate(
-    #         scene=self.image.copy(),
-    #         detections=self.sv_detection,
-    #         labels=self.labels,
-    #     )
+        self.labels = [
+            f"{classes[class_id]} {confidence:0.2f}"
+            for _, _, confidence, class_id, _, _ in self.sv_detection
+        ]
 
-    #     im = Image(
-    #         image=annotated_image,
-    #         file_extension=self.file_extension,
-    #     )
-    #     im.sv_detection = self.sv_detection
-    #     im.labels = self.labels
-    #     return im
+        return self
 
-    # def annotate_row(
-    #     self, rows: pd.Series | pd.DataFrame, labels: str | list[str]
-    # ) -> Self:
-    #     """
-    #     Annotate based on a Series or DataFrame with bounding boxes in
-    #     x1, y1, x2, y2 format.
-    #     """
-    #     if isinstance(rows, pd.Series):
-    #         rows = pd.DataFrame([rows])
-    #     if isinstance(labels, str):
-    #         labels = [labels]
+    def annotate(self) -> Self:
+        """Return a copy of the image with bounding boxes drawn.
 
-    #     # Get bounding box
-    #     xyxy = rows[["x1", "y1", "x2", "y2"]].values
+        Requires `self.sv_detection` and `self.labels` to be set.
+        Usually called after calling predict such as:
 
-    #     # Scale annotations if rows have image_width and image_height
-    #     if ("image_width" in rows.columns) and ("image_height" in rows.columns):
-    #         sw = self.width / rows.image_width
-    #         sh = self.height / rows.image_height
-    #         scale = np.dstack([sw, sh, sw, sh])[0]
-    #         xyxy = xyxy * scale
+            im.predict(model).annotate().display()
+        """
+        annotator = BoxAndLabelAnnotator()
 
-    #     self.sv_detection = sv.Detections(xyxy=xyxy)
-    #     self.labels = labels
-    #     return self.annotate()
+        annotated_image = annotator.annotate(
+            scene=self.image.copy(),
+            detections=self.sv_detection,
+            labels=self.labels,
+        )
+
+        im = Image(
+            image=annotated_image,
+            file_extension=self.file_extension,
+        )
+        im.sv_detection = self.sv_detection
+        im.labels = self.labels
+        return im
+
+    def annotate_row(
+        self,
+        rows: pd.Series | pd.DataFrame,
+        label_col: str | list[str],
+    ) -> Self:
+        """Annotate based on a Series or DataFrame with bounding boxes
+
+        The data should have bounding box(es) in x1, y1, x2, y2 format and
+        labels in the column(s) specified in `label_col`.
+
+        Args:
+            rows: The data to annotate
+            label_col: A string with a single column to use as labels or
+                a list of strings to use multiple. The columns will be
+                joined with "+".
+        """
+        # Normalize one row to a DataFrame
+        if isinstance(rows, pd.Series):
+            rows = pd.DataFrame([rows])
+        rows = rows.copy()
+
+        # Set up the labels and mapping of labels to IDs
+        if isinstance(label_col, list):
+            rows["label"] = rows[label_col].apply(lambda r: "+".join(r), axis=1)
+            label_col = "label"
+
+        labels = rows[label_col].tolist()
+        unique_labels = list(set(labels))
+        class_ids = np.array([unique_labels.index(l) for l in labels])
+
+        # Get bounding box
+        xyxy = rows[["x1", "y1", "x2", "y2"]].values
+
+        # Scale annotations if rows have image_width and image_height
+        if ("image_width" in rows.columns) and ("image_height" in rows.columns):
+            sw = self.width / rows.image_width
+            sh = self.height / rows.image_height
+            scale = np.dstack([sw, sh, sw, sh])[0]
+            xyxy = xyxy * scale
+
+        self.sv_detection = sv.Detections(xyxy=xyxy, class_id=class_ids)
+
+        self.labels = labels
+        return self.annotate()
 
     def crop(
         self,
-        xyxy: Sequence[int],  # | None = None,
+        xyxy: Sequence[int] | None = None,
         padding: int | float = 0,
         **kwargs,
     ) -> Self:
         """Crop the image to the given bounding box, optionally with padding.
 
         Args:
-            xyxy: The bounding box in xyxy format
+            xyxy: The bounding box in xyxy format. If None, but there are
+                annotations on this image, use the first bounding box to crop.
             padding: Optionally pad the bounding box by a given number of
             pixels (int) or by a percentage of the bounding box (float)
 
         Returns:
             The cropped image as a new `Image`.
         """
-        # if xyxy is None:
-        #    xyxy = self.sv_detection.xyxy[0].astype(int)
+        if xyxy is None:
+            xyxy = self.sv_detection.xyxy[0].astype(int)
 
         x1, y1, x2, y2 = xyxy
 
@@ -292,27 +334,24 @@ class Image:
             file_extension=self.file_extension,
         )
 
-    # def detection_crops(
-    #     self, padding: int | float = 0
-    # ) -> Sequence[tuple[Sequence[int], float, Self]]:
-    #     """
-    #     Return a list of tuples, one for each object in
-    #     self.sv_detection.
+    def detection_crops(
+        self, **kwargs
+    ) -> Sequence[tuple[Sequence[int], float, Self]]:
+        """Return a list of tuples, one for each object in self.sv_detection.
 
-    #     Optionally pad each cropped image. This won't change the returned
-    #     xyxy values to reflect the changed crop.
-
-    #     Each tuple contains (xyxy, conf, class_id, cropped image).
-    #     """
-    #     return [
-    #         (
-    #             xyxy,
-    #             self.sv_detection.confidence[i],
-    #             self.sv_detection.class_id[i],
-    #             self.crop(xyxy, padding),
-    #         )
-    #         for i, xyxy in enumerate(self.sv_detection.xyxy.astype(int))
-    #     ]
+        Returns:
+            A list of tuples. Each tuple contains:
+                (xyxy, conf, class_id, cropped image
+        """
+        return [
+            (
+                xyxy,
+                self.sv_detection.confidence[i],
+                self.sv_detection.class_id[i],
+                self.crop(xyxy, **kwargs),
+            )
+            for i, xyxy in enumerate(self.sv_detection.xyxy.astype(int))
+        ]
 
     def resize(
         self,
@@ -528,9 +567,71 @@ def load_images(
     return pd.Series(images)
 
 
+def get_image_df(
+    df: pd.DataFrame,
+    cols: list[str] | None = None,
+    reduplicate: bool = False,
+    **kwargs,
+) -> pd.DataFrame:
+    """Get a DataFrame of images given another DataFrame (of annotations).
+
+    This function is used to take a DataFrame of image paths and/or urls and
+    return a DataFrame with each unique image. The most common use case is
+    to take a list of annotations, of which there may be multiple per image,
+    and get a DataFrame of only the unique images for processing/prediction.
+
+    Args:
+        df: A DataFrame with at least a path or url to an image
+        cols: The columns to include in the output and deduplicate by.
+            If None, the default is `["image_id", "path", "image_source"]`
+        reduplicate: Whether to keep all of the original rows including
+            duplicates. This would be used if you have images with multiple
+            unique annotations. This will be more efficient than using
+            load_images because it won't load each image more than once.
+        **kwargs: See `load_image` for accepted kwargs
+    """
+    if cols is None:
+        default_cols = ["image_id", "path", "image_source"]
+        cols = [col for col in default_cols if col in df.columns]
+
+    # Get the unique images
+    image_df = df[cols].drop_duplicates().reset_index(drop=True)
+
+    # Load the images
+    image_df["image"] = load_images(image_df, **kwargs)
+
+    # Get the path if no path was provided (if temporary paths were generated)
+    if "path" not in image_df.columns:
+        image_df["path"] = image_df["image"].apply(lambda im: im.path)
+
+    # Mark whether each image exists
+    image_df["exists"] = image_df["path"].apply(lambda p: p.exists())
+
+    if reduplicate:
+        return image_df.merge(df)
+
+    return image_df
+
+
 def display_image_df(df: pd.DataFrame, print_cols=None):
     """Display the images in a DataFrame."""
     for i, row in df.iterrows():
         if print_cols:
             print(*[row[col] for col in print_cols])
         load_image(row).display()
+
+
+class BoxAndLabelAnnotator(BaseAnnotator):
+    def __init__(self):
+        self.box_annotator = sv.BoundingBoxAnnotator()
+        self.label_annotator = sv.LabelAnnotator()
+
+    def annotate(self, scene, detections, labels):
+        scene = self.box_annotator.annotate(
+            scene=scene.copy(),
+            detections=detections,
+        )
+
+        return self.label_annotator.annotate(
+            scene=scene.copy(), detections=detections, labels=labels
+        )
