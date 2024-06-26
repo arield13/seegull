@@ -10,4 +10,13 @@ image_id,image_source,image_height,image_width,object,material,brand,x1,y1,x2,y2
 4875697904501717195,https://storage.googleapis.com/seegull-test-data/image-recycling-26061-651438125879274ed7cf6047-7d65f0894860efb7-573076577817.jpg,666,500,Battery,Hazardous Waste,unknown,206.0,328.0,298.0,417.0
 468836346316123269,https://storage.googleapis.com/seegull-test-data/package-picture-186379-6310b0ff5939950012d1edb9-16082710-front.jpg,901,901,Bottle,Plastic - Hard,smarteyes,340.0,35.0,577.0,856.0
 468836346316123269,https://storage.googleapis.com/seegull-test-data/package-picture-186379-6310b0ff5939950012d1edb9-16082710-front.jpg,901,901,Lid/Cap,Composite,smarteyes,396.0,35.0,535.0,258.0
-
+225696838630806860,https://storage.googleapis.com/seegull-test-data/package-picture-301908-62f37b9d8d4c330015a63978-5060139550246-front.jpg,900,900,Bottle,Plastic - Hard,hydrate,326.0,67.0,578.0,822.0
+225696838630806860,https://storage.googleapis.com/seegull-test-data/package-picture-301908-62f37b9d8d4c330015a63978-5060139550246-front.jpg,900,900,Lid/Cap,Plastic - Hard,hydrate,370.0,71.0,517.0,125.0
+471293006637358863,https://storage.googleapis.com/seegull-test-data/package-picture-493875-6312198dad2f550013e22edd-front.jpg,900,900,Box/Card/Tray/Crate,Fiber - Cardboard / Paper Packaging,tgi fridays,113.0,69.0,761.0,781.0
+475762560805920967,https://storage.googleapis.com/seegull-test-data/package-picture-494969-656778fc42881f3a33665e0a-front.jpg,900,900,Flexibles/Bag/Wrapper/Foil/Net,Plastic - Soft,asda,139.0,360.0,803.0,562.0
+2724008258589670712,https://storage.googleapis.com/seegull-test-data/package-picture-546775-63171cdd29c11900138ce73b-front.jpg,901,901,Aerosol,Metal,1001,328.0,0.0,558.0,901.0
+2724008258589670712,https://storage.googleapis.com/seegull-test-data/package-picture-546775-63171cdd29c11900138ce73b-front.jpg,901,901,Lid/Cap,Plastic - Hard,1001,359.0,0.0,559.0,181.0
+7516759146918185929,https://storage.googleapis.com/seegull-test-data/image-recycling-290951-651438125879274ed7cf6047-85fa7b4680a1a026-994909286619.jpg,666,500,Battery,Hazardous Waste,varta,204.0,268.0,318.0,333.0
+7516759146918185929,https://storage.googleapis.com/seegull-test-data/image-recycling-290951-651438125879274ed7cf6047-85fa7b4680a1a026-994909286619.jpg,666,500,Battery,Hazardous Waste,andersson,253.0,317.0,370.0,376.0
+7516759146918185929,https://storage.googleapis.com/seegull-test-data/image-recycling-290951-651438125879274ed7cf6047-85fa7b4680a1a026-994909286619.jpg,666,500,Battery,Hazardous Waste,,127.0,240.0,238.0,323.0
+7516759146918185929,https://storage.googleapis.com/seegull-test-data/image-recycling-290951-651438125879274ed7cf6047-85fa7b4680a1a026-994909286619.jpg,666,500,Battery,Hazardous Waste,unknown,120.0,353.0,243.0,402.0

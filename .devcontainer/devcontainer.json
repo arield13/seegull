@@ -7,6 +7,7 @@
         "vscode": {
             "extensions": [
                 "charliermarsh.ruff",
+                "ms-toolsai.jupyter",
                 "ryanluker.vscode-coverage-gutters"
             ]
         }

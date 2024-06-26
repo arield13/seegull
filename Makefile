@@ -55,11 +55,11 @@ lint/flake8: ## check style with flake8
 lint: lint/flake8 ## check style
 
 test: ## run tests quickly with the default Python
-	coverage erase
+	rm .coverage*
 	coverage run --concurrency=multiprocessing -m pytest
 	coverage combine
-	coverage xml
-	coverage report --show-missing
+	coverage xml -i
+	coverage report --show-missing -i
 
 test-all: ## run tests on every Python version with tox
 	tox

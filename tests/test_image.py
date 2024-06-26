@@ -2,29 +2,10 @@
 
 """Tests for `seegull.data.image` package."""
 
-import shutil
-from pathlib import Path
-
-import pandas as pd
 import PIL
 import pytest
+
 from seegull.data import image
-
-TEST_IMAGE = "https://storage.googleapis.com/seegull-test-data/image-recycling-26061-651438125879274ed7cf6047-7d65f0894860efb7-573076577817.jpg"
-TEST_CSV = "tests/data/images.csv"
-IMAGE_DIR = Path("/tmp/seegull_test_images")
-
-
-@pytest.fixture(scope="session", autouse=True)
-def clear_and_create_image_directory(request):
-    if IMAGE_DIR.exists():
-        shutil.rmtree(IMAGE_DIR)
-    IMAGE_DIR.mkdir()
-
-
-@pytest.fixture
-def im():
-    return image.Image(url=TEST_IMAGE, path=IMAGE_DIR / "test.jpg")
 
 
 def test_download_image(im):
@@ -59,24 +40,26 @@ def test_crop_with_padding(im):
     assert im2.height == 110
 
 
-@pytest.fixture
-def df():
-    df = pd.read_csv(TEST_CSV)
-    df["path"] = df["image_id"].apply(lambda i: IMAGE_DIR / f"{i}.jpg")
-    return df
+def test_load_images(annotation_df):
+    annotation_df["image"] = image.load_images(annotation_df)
 
-
-def test_load_images(df):
-    df["image"] = image.load_images(df)
-
-    row = df.iloc[0]
+    row = annotation_df.iloc[0]
     assert isinstance(row.image, image.Image)
     assert row.image.width == row.image_width
 
 
-def test_load_images_with_options(df):
-    df["image"] = image.load_images(df, crop=True, return_type="PIL")
+def test_load_images_with_options(annotation_df):
+    annotation_df["image"] = image.load_images(
+        annotation_df, crop=True, return_type="PIL"
+    )
 
-    row = df.iloc[0]
+    row = annotation_df.iloc[0]
     assert isinstance(row.image, PIL.Image.Image)
     assert row.image.width == (int(row.x2) - int(row.x1))
+
+
+def test_get_image_df(annotation_df):
+    image_df = image.get_image_df(annotation_df)
+    assert len(image_df) < len(annotation_df)
+    assert len(image_df) == image_df["image_id"].nunique()
+    assert "image" in image_df.columns
