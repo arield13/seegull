@@ -31,6 +31,7 @@ jobs:
         sudo apt-get install -y --no-install-recommends libgl1 libusb-1.0-0-dev
         python -m pip install --upgrade pip
         python -m pip install -e .[dev]
+        yolo export model=yolov8n.pt format=saved_model # Install YOLO export dependencies
     - name: Lint with Ruff
       run: |
         ruff check --output-format=github .
@@ -39,11 +40,23 @@ jobs:
       run: |
         coverage run --concurrency=multiprocessing -m pytest --junitxml=junit/test-results-${{ matrix.python-version }}.xml
         coverage combine
-        coverage xml -i
-    - name: Upload pytest test results
-      uses: actions/upload-artifact@v4
+        coverage lcov -i
+    - name: Test Summary
+      uses: test-summary/action@v2
       with:
-        name: pytest-results-${{ matrix.python-version }}
-        path: junit/test-results-${{ matrix.python-version }}.xml
-      # Use always() to always run this step to publish test results when there are test failures
-      if: ${{ always() }}
+        paths: "juint/*.xml"
+      if: always()
+    - name: Coverage Report
+      uses: romeovs/lcov-reporter-action@v0.3.1
+      with:
+        lcov-file: ./coverage.lcov
+        filter-changed-files: true
+        delete-old-comments: true
+        title: Coverage
+    # - name: Upload pytest test results
+    #   uses: actions/upload-artifact@v4
+    #   with:
+    #     name: pytest-results-${{ matrix.python-version }}
+    #     path: junit/test-results-${{ matrix.python-version }}.xml
+    #   # Use always() to always run this step to publish test results when there are test failures
+    #   if: ${{ always() }}
