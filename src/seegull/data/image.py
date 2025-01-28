@@ -24,7 +24,6 @@ from supervision.annotators.base import BaseAnnotator
 from tqdm.contrib.concurrent import process_map
 from typing_extensions import Self
 
-from seegull.models.dino import AutodistillModelWrapper
 from seegull.models.yolo import YOLO, YOLOMultiLabel
 
 # from bower_ml.models.autodistill import AutodistillModelWrapper
@@ -38,11 +37,12 @@ PIL.ImageFile.LOAD_TRUNCATED_IMAGES = True
 
 class Image:
     """A class for (down)loading, mainpulating and predicting on images."""
-
+    
     def __init__(
         self,
         path: Path | str = None,
         image: np.ndarray = None,
+        pil_image: PIL.Image.Image = None,
         url: str = None,
         low_memory: bool = False,
         force_redownload: bool = False,
@@ -56,26 +56,32 @@ class Image:
                 used instead.
             image: The image pixels as a uint8 numpy array with shape
                 [height, width, 3]. The array should be in BGR format.
+            pil_image: A PIL.Image object to initialize the image.
             url: A remote path to the file. If provided, the image will be
                 downloaded during initialization of `Image`.
-                Supported protocals are:
+                Supported protocols are:
                     http(s)://, gs:// (Google Storage)
-            low_memory: If this is True the raw pixels won't be kept in
-                memory. Otherwise the pixels will be stored at `self.image`
+            low_memory: If this is True, the raw pixels won't be kept in
+                memory. Otherwise, the pixels will be stored at `self.image`
                 after the first load.
             force_redownload: If True, redownload the image from `url` even
-                even if it already exists at `path`.
+                if it already exists at `path`.
             file_extension: If either path or url is given, file_extension
                 will be overwritten by the inferred value. This is useful when
-                Image is initialized from `image` pixels.
+                Image is initialized from `image` pixels or PIL.Image.
 
         Raises:
-            ValueError: If none of `path`, `url` or `image` are provided.
+            ValueError: If none of `path`, `url`, `image`, or `pil_image` are provided.
         """
         self._path = Path(path) if path else path
         self._image = image
         self.url = url
         self.low_memory = low_memory
+
+        # Convert PIL.Image to numpy array if provided
+        if pil_image:
+            self._image = cv2.cvtColor(np.array(pil_image), cv2.COLOR_RGB2BGR)
+            
 
         # Try to infer the file extension
         self.file_extension = file_extension
@@ -84,13 +90,15 @@ class Image:
         elif self.url:
             filename = self.url.split("/")[-1]
             self.file_extension = filename.split(".")[-1]
+        elif pil_image:
+            self.file_extension = pil_image.format
 
         if (
             (not self.path_exists())
             and self._image is None
             and self.url is None
         ):
-            raise ValueError("One of path, image or url must be set")
+            raise ValueError("One of path, image, url, or pil_image must be set")
 
         self.download(force=force_redownload)
 
@@ -181,6 +189,8 @@ class Image:
         Saves the prediction as an `supervision.Detections` object on this
         Image instance.
 
+        TODO: Implment DINO
+
         Args:
             model: The object detection model to use
             conf: The confidence threshold for a prediction
@@ -208,9 +218,9 @@ class Image:
         # elif isinstance(model, DetectionBaseModel):
         #     classes = model.ontology.classes()
         #     self.sv_detection = model.predict(self.image)
-        elif isinstance(model, AutodistillModelWrapper):
-            classes = model.classes
-            self.sv_detection = model.predict(self, conf=conf)
+        # elif isinstance(model, AutodistillModelWrapper):
+        #     classes = model.classes
+        #     self.sv_detection = model.predict(self, conf=conf)
         else:
             raise NotImplementedError(f"Model {model} is not supported.")
 
@@ -272,12 +282,12 @@ class Image:
 
         # Set up the labels and mapping of labels to IDs
         if isinstance(label_col, list):
-            rows["label"] = rows[label_col].apply(lambda r: "+".join(r), axis=1)
+            rows["label"] = rows[label_col].apply(lambda r: "+".join(r.dropna()) if r.notna().any() else "Unknown", axis=1)
             label_col = "label"
 
         labels = rows[label_col].tolist()
         unique_labels = list(set(labels))
-        class_ids = np.array([unique_labels.index(label) for label in labels])
+        class_ids = np.array([unique_labels.index(l) for l in labels])
 
         # Get bounding box
         xyxy = rows[["x1", "y1", "x2", "y2"]].values
@@ -510,14 +520,21 @@ def load_image(
         Either a `seegull.Image` or `PIL.Image`
 
     Raises:
-        NotImplementedError: If an unknown return_type is passed
+        NotImplementedError: If an unknown return_type or unknown image source is passed
     """
-    im = Image(
-        url=getattr(row, image_source_column_name, None),
-        path=getattr(row, path_column_name, None),
-        **kwargs,
-    )
-
+   
+    if image_source_column_name in row or path_column_name in row:
+        im = Image(
+            url=getattr(row, image_source_column_name, None),
+            path=getattr(row, path_column_name, None),
+            **kwargs,
+        )
+    elif "image" in row:
+        if isinstance(row["image"], PIL.Image.Image):
+            im = Image(pil_image=row["image"], **kwargs)
+    else:
+        raise NotImplementedError(f"Unknown image source type")
+    
     if crop:
         im = im.crop(
             np.array([row.x1, row.y1, row.x2, row.y2]).astype(int), **kwargs
@@ -537,6 +554,7 @@ def load_image(
         raise NotImplementedError(f"Unknown return type: {return_type}")
 
 
+
 def load_images(
     df: pd.DataFrame,
     max_workers: int | None = None,
@@ -552,7 +570,6 @@ def load_images(
         max_workers: The number of concurrent workers to use.
             See https://tqdm.github.io/docs/contrib.concurrent/#process_map
     """
-
     images = process_map(
         partial(
             load_image,
@@ -561,6 +578,7 @@ def load_images(
         [row for _, row in df.iterrows()],
         desc="loading images",
         max_workers=max_workers,
+        chunksize=1
     )
 
     return pd.Series(images)
@@ -570,6 +588,7 @@ def get_image_df(
     df: pd.DataFrame,
     cols: list[str] | None = None,
     reduplicate: bool = False,
+    pre_loaded_images: bool = False,
     **kwargs,
 ) -> pd.DataFrame:
     """Get a DataFrame of images given another DataFrame (of annotations).
@@ -578,6 +597,7 @@ def get_image_df(
     return a DataFrame with each unique image. The most common use case is
     to take a list of annotations, of which there may be multiple per image,
     and get a DataFrame of only the unique images for processing/prediction.
+    
 
     Args:
         df: A DataFrame with at least a path or url to an image
@@ -587,17 +607,25 @@ def get_image_df(
             duplicates. This would be used if you have images with multiple
             unique annotations. This will be more efficient than using
             load_images because it won't load each image more than once.
+        pre_loaded_images: If dataframe contains pre-loaded images already. 
+            This could be the case from huggingface datasets or other parquet datasets.
+            Note: Running this option will load all images per annotation and possibility
+            of reduplicate argument will be ignored.
         **kwargs: See `load_image` for accepted kwargs
     """
     if cols is None:
         default_cols = ["image_id", "path", "image_source"]
         cols = [col for col in default_cols if col in df.columns]
-
+        
     # Get the unique images
-    image_df = df[cols].drop_duplicates().reset_index(drop=True)
-
+    image_df = df.copy()
+    if not pre_loaded_images:
+        image_df = df[cols].drop_duplicates().reset_index(drop=True)
+    
     # Load the images
-    image_df["image"] = load_images(image_df, **kwargs)
+    image_df["image"] = load_images(df, **kwargs) if pre_loaded_images else load_images(image_df, **kwargs)
+
+     
 
     # Get the path if no path was provided (if temporary paths were generated)
     if "path" not in image_df.columns:
@@ -606,7 +634,7 @@ def get_image_df(
     # Mark whether each image exists
     image_df["exists"] = image_df["path"].apply(lambda p: p.exists())
 
-    if reduplicate:
+    if reduplicate and not pre_loaded_images:
         return image_df.merge(df)
 
     return image_df

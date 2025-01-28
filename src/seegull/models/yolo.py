@@ -82,7 +82,7 @@ class YOLO:
         default_signature: ConcreteFunction,
         dino_model: Path | str | None = None,
         score_thresholds: None = None,
-    ) -> ConcreteFunction:
+    ) -> (ConcreteFunction, ConcreteFunction):
         """Get a custom tensorflow function signature with pre/post-processing.
 
         The custom signature adds preprocessing and postprocessing steps and
@@ -138,7 +138,7 @@ class YOLO:
         tf_model = tf.saved_model.load(tf_path)
 
         default_signature = tf_model
-        prediction_signature = self.get_custom_tf_signature(
+        uint8_signature, prediction_signature = self.get_custom_tf_signature(
             default_signature, dino_model, self.calibration
         )
 
@@ -148,6 +148,7 @@ class YOLO:
             tf_path_custom,
             signatures={
                 "serving_default": default_signature,
+                "serving_uint8": uint8_signature,
                 "serving_predictions": prediction_signature,
             },
         )
@@ -242,11 +243,15 @@ class YOLO:
                 x1, y1, x2, y2
         """
         # Import here to avoid circular import
-        from seegull.data.image import get_image_df
+        from seegull.data.image import get_image_df 
 
-        image_df = get_image_df(df)
-
+        if "image_source" in df.columns:
+            image_df = get_image_df(df)
+        else:
+            image_df = get_image_df(df,pre_loaded_images=True)
+        
         paths = image_df[image_df["exists"]]["path"].tolist()
+        
         dfs = []
 
         for paths_chunk in tqdm(
@@ -368,9 +373,11 @@ class YOLOMultiLabel(YOLO):
                 x1, y1, x2, y2
         """
         # Import here to avoid circular import
-        from seegull.data.image import get_image_df
-
-        image_df = get_image_df(df)
+        from seegull.data.image import get_image_df, load_images_from_df 
+        if "image_source" in df.columns:
+            image_df = get_image_df(df)
+        else:
+            image_df = load_images_from_df(df)
 
         paths = image_df[image_df["exists"]]["path"].tolist()
         dfs = []
@@ -437,7 +444,7 @@ class YOLOMultiLabel(YOLO):
         default_signature: ConcreteFunction,
         dino_model: Path | str | None = None,
         score_thresholds: dict | None = None,
-    ) -> tuple[ConcreteFunction, ConcreteFunction]:
+    ) -> (ConcreteFunction, ConcreteFunction):
         """Get a custom tensorflow function signature with pre/post-processing.
 
         The custom signature adds preprocessing and postprocessing steps and
@@ -569,6 +576,8 @@ class YOLOValidation:
             self._predictions_df = self.load_predictions_csv(predictions_csv)
         elif df is not None:
             self._predictions_df = self.generate_predictions(self.df)
+            #self._predictions_df = self.load_predictions_df(df)
+            
         else:
             raise ValueError(
                 "One of `val`, `predictions_csv` or `df` must be provided to YOLOValidation."
@@ -1244,14 +1253,43 @@ def get_custom_tf_signature(
     dino_model: Path | str | None = None,
     score_thresholds: np.ndarray | None = None,
     nc: int | list[int] | None = None,
-) -> ConcreteFunction:
+) -> (ConcreteFunction, ConcreteFunction):
     if dino_model:
         dino_signature = tf.saved_model.load(dino_model).signatures[
             "with_preprocessing"
         ]
     else:
         dino_signature = None
+    
+    @tf.function
+    def image_uint8(
+        image_bytes,
+        model_shape=(640, 640),
+    ):
+        model_height, model_width = model_shape
+        tensor_image = tf.reshape(image_bytes, [model_height, model_width, 3])
+        float32_image = tf.cast(tensor_image, dtype=tf.float32)
+        normalized_image = float32_image / 255.0
 
+        tf_img = tf.reshape(normalized_image, [1, model_height, model_width, 3])
+
+        # Prediction
+        y = default_signature(tf_img)
+        tf.print("Default Signature Output:", y)
+        raw_predictions = y[0]
+        return raw_predictions
+    
+    #input_signature = default_signature.structured_input_signature
+    #input_spec = list(input_signature[1].values())[0]
+    #default_signature.inputs[0].shape,
+    uint8_signature = image_uint8.get_concrete_function(
+        image_bytes=tf.TensorSpec(
+            shape=(640, 640, 3),  # Assuming model_shape is (640, 640)
+            dtype=tf.uint8,
+            name="image_bytes"
+        )
+    )
+    
     @tf.function
     def get_detections(
         image_raw,
@@ -1478,26 +1516,48 @@ def get_custom_tf_signature(
             return response
 
     # Create new signature, to get filtered boounding boxes
-    prediction_signature = get_predictions.get_concrete_function(
-        image_raw=tf.TensorSpec(
-            tf.TensorShape([None]), dtype=tf.string, name="image_raw"
-        ),
-        image_shape=tf.TensorSpec(
-            tf.TensorShape([2]), dtype=tf.int32, name="image_shape"
-        ),
-        score_threshold=tf.TensorSpec(
-            shape=(), dtype=tf.float32, name="score_threshold"
-        ),
-        iou_threshold=tf.TensorSpec(
-            shape=(), dtype=tf.float32, name="iou_threshold"
-        ),
-        max_boxes=tf.TensorSpec(shape=(), dtype=tf.int32, name="max_boxes"),
-        return_embeddings=tf.TensorSpec(
-            shape=(), dtype=tf.bool, name="return_embeddings"
-        ),
-    )
-
-    return prediction_signature
+    prediction_signature=None
+    if dino_model:
+        prediction_signature = get_predictions.get_concrete_function(
+            image_raw=tf.TensorSpec(
+                tf.TensorShape([None]), dtype=tf.string, name="image_raw"
+            ),
+            image_shape=tf.TensorSpec(
+                tf.TensorShape([2]), dtype=tf.int32, name="image_shape"
+            ),
+            score_threshold=tf.TensorSpec(
+                shape=(), dtype=tf.float32, name="score_threshold"
+            ),
+            iou_threshold=tf.TensorSpec(
+                shape=(), dtype=tf.float32, name="iou_threshold"
+            ),
+            max_boxes=tf.TensorSpec(
+                shape=(), dtype=tf.int32, name="max_boxes"
+            ),
+            return_embeddings=tf.TensorSpec(
+                shape=(), dtype=tf.bool, name="return_embeddings"
+            ),
+        )
+    else:
+        prediction_signature = get_predictions.get_concrete_function(
+            image_raw=tf.TensorSpec(
+                tf.TensorShape([None]), dtype=tf.string, name="image_raw"
+            ),
+            image_shape=tf.TensorSpec(
+                tf.TensorShape([2]), dtype=tf.int32, name="image_shape"
+            ),
+            score_threshold=tf.TensorSpec(
+                shape=(), dtype=tf.float32, name="score_threshold"
+            ),
+            iou_threshold=tf.TensorSpec(
+                shape=(), dtype=tf.float32, name="iou_threshold"
+            ),
+            max_boxes=tf.TensorSpec(
+                shape=(), dtype=tf.int32, name="max_boxes"
+            )
+        )
+    
+    return uint8_signature, prediction_signature
 
 
 def write_training_example(
