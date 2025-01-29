@@ -26,7 +26,6 @@ from typing_extensions import Self
 
 from seegull.models.yolo import YOLO, YOLOMultiLabel
 
-# from bower_ml.models.autodistill import AutodistillModelWrapper
 
 # Enable reading heic files
 register_heif_opener()
@@ -215,12 +214,6 @@ class Image:
             classes = model.classes
             self.yolo_result = model(self.to_pil(), conf=conf, verbose=False)[0]
             self.sv_detection = sv.Detections.from_ultralytics(self.yolo_result)
-        # elif isinstance(model, DetectionBaseModel):
-        #     classes = model.ontology.classes()
-        #     self.sv_detection = model.predict(self.image)
-        # elif isinstance(model, AutodistillModelWrapper):
-        #     classes = model.classes
-        #     self.sv_detection = model.predict(self, conf=conf)
         else:
             raise NotImplementedError(f"Model {model} is not supported.")
 

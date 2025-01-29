@@ -1,5 +1,9 @@
 # **Seegull**  
-**Seegull is the library that powers [Bower's](https://getbower.com/) waste material and object scanning functionality. It includes tools for training object detection models, pretrained models, and datasets.**
+**Seegull is the library that powers [Bower's](https://getbower.com/) barcodeless scanning functionality. It includes tools for training object detection models, pretrained models, and datasets.**
+
+**The code was developed in a collaboration with Google.org and Google employees as part of the Google Impact Challenge: Tech for social good support that Bower got H1 2024. Which had as goal to create impact in the area of sustainability and waste. 
+The purpose of the code was to build a model that can detect items that could be recycled and inform how the product that they are holding should be recycled.**
+
 <div align="center">
   <img width="1000" alt="img.png" src="docs/img.png">
     
@@ -53,6 +57,8 @@ for the modifications to be applied.
 
 **You can use one of the pretrained models to detect objects and predict their object and material types.**
 
+**The model have been trained on 40k+ images. But feel free to uptrain a newer version if you have additional data annotations, we would gladly see your validation runs compared to our model.**
+
 
 
 **Example code snipplet from [YOLOMultiLabel.ipynb](notebooks/YOLOMultiLabel.ipynb)**:
@@ -94,7 +100,11 @@ For more comprehensive examples, check out the [notebooks](notebooks/) folder.
 
 ## **[Model](https://huggingface.co/BowerApp/bowie-yolov8-multihead-trash-detection)**
 
+**The model is currently being used in Bower's app to help guide users how to sort items for recycling.
+Hence the goal of the model is to detect object and material in order to adjust recommendations based on the country that the users is located in.**
+
 **Latest trained multi-detection model available on [Huggingface](https://huggingface.co/BowerApp/bowie-yolov8-multihead-trash-detection).**
+
 
 
 
@@ -136,15 +146,15 @@ For more comprehensive examples, check out the [notebooks](notebooks/) folder.
 
 
 
-The bower-waste-annotations dataset consists of 1440 images of waste and various consumer items taken by consumer phone cameras. The images are annotated with Material type and Object type classes, listed below.
+**The bower-waste-annotations dataset consists of 1440 images of waste and various consumer items taken by consumer phone cameras. The images are annotated with Material type and Object type classes, listed below.
 The images and annotations has been manually reviewed to ensure correctness. It is assumed to have high quality of both bounding box accuracy and material + object combination. The purpose of the dataset has been to validate models - therefor all images in this set is categorized as validation data. As quality of annotations is high, one can use this as ground truth for validating models.
-This data set was created in a collaboration with Google.org and Google employees as part of the [Google Impact Challenge: Tech for social good](https://impactchallenge.withgoogle.com/techforsocialgood/) support that Bower got H1 2024. Which had as goal to create impact in the area of sustainability and waste. Any use of this data that contributes to this purpose is highly appreciated! Let us know how you contribute.
+This data set was created in a collaboration with Google.org and Google employees as part of the [Google Impact Challenge: Tech for social good](https://impactchallenge.withgoogle.com/techforsocialgood/) support that Bower got H1 2024. Which had as goal to create impact in the area of sustainability and waste. Any use of this data that contributes to this purpose is highly appreciated! Let us know how you contribute.**
 
 
 
 ### Data Contributors
 
-Lucas Nilsson, Linda Attby, Louise Rönne, Henrik Erskérs, Jeremy Neiman, Suhani Vora
+Lucas Nilsson, Linda Attby, Louise Rönne, Henrik Erskérs, Jeremy Neiman, Suhani
 
 
 ### Contributions
@@ -161,11 +171,16 @@ Thanks to Google.org for making this possible, as well as the Google Fellows joi
 
 ### Contributors
 
-Lucas Nilsson, Linda Attby, Louise Rönne, Henrik Erskérs, Jeremy Neiman, Suhani Vora
+Lucas Nilsson, Linda Attby, Louise Rönne, Henrik Erskérs, Jeremy Neiman, Suhani
 
 ### **Contributing**
 
 Contributions are welcome! If you have improvements, bug fixes, or new ideas, feel free to open a pull request.
+
+
+## License
+
+This project is licensed under the [MIT License](LICENSE).
 
 ---
 
