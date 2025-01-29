@@ -1,5 +1,5 @@
 # **Seegull**  
-**Seegull is the library that powers [Bower's](https://getbower.com/) barcodeless scanning functionality. It includes tools for training object detection models, pretrained models, and datasets.**
+**Seegull is the library that powers [Bower's](https://getbower.com/) waste material and object scanning functionality. It includes tools for training object detection models, pretrained models, and datasets.**
 <div align="center">
   <img width="1000" alt="img.png" src="docs/img.png">
     
@@ -136,15 +136,15 @@ For more comprehensive examples, check out the [notebooks](notebooks/) folder.
 
 
 
-**The bower-waste-annotations dataset consists of 1440 images of waste and various consumer items taken by consumer phone cameras. The images are annotated with Material type and Object type classes, listed below.
+The bower-waste-annotations dataset consists of 1440 images of waste and various consumer items taken by consumer phone cameras. The images are annotated with Material type and Object type classes, listed below.
 The images and annotations has been manually reviewed to ensure correctness. It is assumed to have high quality of both bounding box accuracy and material + object combination. The purpose of the dataset has been to validate models - therefor all images in this set is categorized as validation data. As quality of annotations is high, one can use this as ground truth for validating models.
-This data set was created in a collaboration with Google.org and Google employees as part of the [Google Impact Challenge: Tech for social good](https://impactchallenge.withgoogle.com/techforsocialgood/) support that Bower got H1 2024. Which had as goal to create impact in the area of sustainability and waste. Any use of this data that contributes to this purpose is highly appreciated! Let us know how you contribute.**
+This data set was created in a collaboration with Google.org and Google employees as part of the [Google Impact Challenge: Tech for social good](https://impactchallenge.withgoogle.com/techforsocialgood/) support that Bower got H1 2024. Which had as goal to create impact in the area of sustainability and waste. Any use of this data that contributes to this purpose is highly appreciated! Let us know how you contribute.
 
 
 
 ### Data Contributors
 
-Lucas Nilsson, Linda Attby, Louise Rönne, Henrik Erskérs, Jeremy Neiman, Suhani
+Lucas Nilsson, Linda Attby, Louise Rönne, Henrik Erskérs, Jeremy Neiman, Suhani Vora
 
 
 ### Contributions
@@ -161,7 +161,7 @@ Thanks to Google.org for making this possible, as well as the Google Fellows joi
 
 ### Contributors
 
-Lucas Nilsson, Linda Attby, Louise Rönne, Henrik Erskérs, Jeremy Neiman, Suhani
+Lucas Nilsson, Linda Attby, Louise Rönne, Henrik Erskérs, Jeremy Neiman, Suhani Vora
 
 ### **Contributing**
 
